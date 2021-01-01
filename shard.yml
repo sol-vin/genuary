@@ -1,0 +1,20 @@
+name: genuary
+version: 0.1.0
+
+authors:
+  - Ian Rash <ian@sol.vin>
+
+targets:
+  app:
+    main: src/app.cr
+
+dependencies:
+  celestine:
+    github: celestinecr/celestine
+  kemal:
+    github: kemalcr/kemal
+  perlin_noise:
+    github: redcodefinal/perlin_noise
+crystal: 0.35.1
+
+license: MIT
