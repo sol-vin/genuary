@@ -1,8 +1,10 @@
 # Triple Nested Loop
 module Genuary01
-  WINDOW_SIZE = 500
-  SIZE           = 5
-  POLYGON_RADIUS = 10
+  WINDOW_WIDTH = 500
+  WINDOW_HEIGHT = 400
+  SIZE           = 7
+  POLYGON_RADIUS = 7
+  POLYGON_DISTANCE = 70
 
   #SIDES_ARRAY  = (3..10).to_a
   DIRECTIONALS = {
@@ -10,9 +12,8 @@ module Genuary01
     y: {x: 0.0, y: -0.3},
     z: {x: -0.3, y: 0.15},
   }
-  POLYGON_DISTANCE = 100
 
-  COLORS = %w[red orange yellow green blue purple violet pink magenta]
+  COLORS = %w[red orangered orange yellow green blue purple violet pink magenta]
 end
 
 get "/01" do |env|
@@ -28,11 +29,11 @@ get "/01/:seed" do |env|
   end
   perlin = PerlinNoise.new(integer_seed)
   svg = Celestine.draw do |ctx|
-    ctx.width = Genuary01::WINDOW_SIZE
-    ctx.width_units = "px"
-    ctx.height = Genuary01::WINDOW_SIZE
-    ctx.height_units = "px"
-    ctx.view_box = {x: 0, y: 0, w: Genuary01::WINDOW_SIZE, h: Genuary01::WINDOW_SIZE}
+    ctx.width = 100
+    ctx.width_units = "%"
+    ctx.height = 100
+    ctx.height_units = "%"
+    ctx.view_box = {x: 0, y: 0, w: Genuary01::WINDOW_WIDTH, h: Genuary01::WINDOW_HEIGHT}
 
     ctx.path(define: true) do |path|
       path.id = "hexagon"
@@ -88,19 +89,21 @@ get "/01/:seed" do |env|
               use.animate do |anim|
                 anim.attribute = "y"
                 anim.values << py
+                anim.values << py
                 anim.values << py + (20 * ((Genuary01::SIZE-y) - (Genuary01::SIZE/2.0).round))
                 anim.values << py
                 anim.values << py
 
 
                 anim.key_times << 0
-                anim.key_times << (timing_position * 0.8)
-                anim.key_times << ((timing_position * 0.8) + 0.1)
+                anim.key_times << (timing_position * 0.5)
+                anim.key_times << ((timing_position * 0.5) + 0.25)
+                anim.key_times << ((timing_position * 0.5) + 0.45)
                 anim.key_times << 1
 
                 anim.custom_attrs["calcMode"] = "spline"
 
-                3.times do
+                4.times do
                   anim.key_splines << "0.5 0 0.5 1"
                 end
                 anim.duration = 2
@@ -115,7 +118,7 @@ get "/01/:seed" do |env|
         end
       end
       group.transform do |t|
-        t.translate(Genuary01::WINDOW_SIZE/2.0, Genuary01::WINDOW_SIZE/2.0)
+        t.translate(Genuary01::WINDOW_WIDTH/2.0, (Genuary01::WINDOW_HEIGHT/2.0)-25)
         t
       end
       group
