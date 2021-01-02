@@ -27,7 +27,6 @@ get "/01/:seed" do |env|
   rescue
     integer_seed = ((env.params.url["seed"].hash.to_i128 &- Int64::MAX) % Int32::MAX).to_i32
   end
-  perlin = PerlinNoise.new(integer_seed)
   svg = Celestine.draw do |ctx|
     ctx.width = 100
     ctx.width_units = "%"
