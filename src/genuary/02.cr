@@ -1,5 +1,7 @@
 # Description
 module Genuary02
+  alias Cell = NamedTuple(px: Int32, py: Int32)
+
   def self.evolve(generations : UInt32, rule : UInt8, start = true)
     rules = {} of UInt8 => Bool
     (0...8).to_a.reverse.each do |rule_key|
@@ -49,14 +51,50 @@ module Genuary02
     total_generations
   end
 
-  GENERATION_SIZE = 20_u32
-  RULE           = 30_u8
-  ON_COLOR       = "black"
-  OFF_COLOR      = "white"
+  def self.get_square_position(g, i)
+    zero_point = get_original_position(0, 0)
+    mid_index = g
 
-  WINDOW_WIDTH  = 500
-  WINDOW_HEIGHT = 500
-  Y_OFFSET = 20
+    if g == 0
+      zero_point
+    else
+      start_square_point = Celestine::FPoint.new(zero_point.x, zero_point.y + (CELL_SIZE * g))
+      start_square_point = Celestine::Math.rotate_point(start_square_point, zero_point, 45)
+      if i == 0
+        start_square_point
+      elsif i <= mid_index
+        next_square_point = Celestine::FPoint.new(start_square_point.x, start_square_point.y + (CELL_SIZE * i))
+        next_square_point = Celestine::Math.rotate_point(next_square_point, start_square_point, -45)
+        next_square_point
+      else
+        mid_square_point = Celestine::FPoint.new(start_square_point.x, start_square_point.y + (CELL_SIZE * mid_index))
+        mid_square_point = Celestine::Math.rotate_point(mid_square_point, start_square_point, -45)
+        next_square_point = Celestine::FPoint.new(mid_square_point.x, mid_square_point.y + (CELL_SIZE * (i-mid_index)))
+        next_square_point = Celestine::Math.rotate_point(next_square_point, mid_square_point, -135)
+        next_square_point
+      end
+    end
+  end
+
+  def self.get_original_position(g, i)
+    p = Celestine::FPoint::ZERO
+    o = Genuary02::GENERATION_SIZE + 1 - g
+    p.x = (i + o) * Genuary02::CELL_SIZE + X_OFFSET
+    p.y = g * Genuary02::CELL_SIZE + Y_OFFSET
+    p
+  end
+
+  WINDOW_WIDTH         =    500
+  WINDOW_HEIGHT        =    500
+  X_OFFSET             =    -10
+  Y_OFFSET             =     20
+  GENERATION_SIZE      = 40_u32
+  MAX_GENERATION_CELLS = ((GENERATION_SIZE * 2) + 1)
+  CELL_SIZE            = WINDOW_WIDTH/MAX_GENERATION_CELLS
+  RULE                 = 30_u8
+  ON_COLOR             = "black"
+  OFF_COLOR            = "white"
+  DURATION             = 5
 end
 
 get "/02" do |env|
@@ -72,7 +110,6 @@ get "/02/:seed" do |env|
     integer_seed = ((env.params.url["seed"].hash.to_i128 &- Int64::MAX) % Int32::MAX).to_i32
   end
 
-  cell_size = Genuary02::WINDOW_WIDTH/((Genuary02::GENERATION_SIZE * 2) + 1)
   ca_data = Genuary02.evolve(Genuary02::GENERATION_SIZE, Genuary02::RULE)
 
   svg = Celestine.draw do |ctx|
@@ -87,22 +124,24 @@ get "/02/:seed" do |env|
         if x >= offset && x < offset + (y * 2) + 1
           if ca_data[y][x - offset]
             ctx.rectangle do |r|
-              r.x = x * cell_size
-              r.y = y * cell_size + Y_OFFSET
-              r.width = cell_size
-              r.height = cell_size
+              opoint = Genuary02.get_square_position(y, x - offset)
+              # Conflicts with animateMotion?
+              # r.x = opoint.x
+              # r.y = opoint.y
+              r.width = Genuary02::CELL_SIZE
+              r.height = Genuary02::CELL_SIZE
               r.fill = Genuary02::ON_COLOR
+
               r.animate_transform_rotate do |a|
-                ox = (x * cell_size) + cell_size/2
-                oy = (y * cell_size + Y_OFFSET) + cell_size/2
+                ox = Genuary02::CELL_SIZE/2
+                oy =  Genuary02::CELL_SIZE/2
 
-                a.duration = 5
-                a.values << "0,#{ox},#{oy}"
-                a.values << "45,#{ox},#{oy}"
+                a.duration = Genuary02::DURATION
                 a.values << "45,#{ox},#{oy}"
                 a.values << "0,#{ox},#{oy}"
                 a.values << "0,#{ox},#{oy}"
-
+                a.values << "-135,#{ox},#{oy}"
+                a.values << "-135,#{ox},#{oy}"
 
                 a.calc_mode = "spline"
 
@@ -115,22 +154,26 @@ get "/02/:seed" do |env|
               end
 
               r.animate_motion do |a|
-                a.duration = 5
-                a.mpath do |p|
-                  p.a_move(0, 0)
-                  p.r_line(0, 0)
-                  p
+                a.duration = Genuary02::DURATION
+                a.mpath do |path|
+                  spoint = Genuary02.get_original_position(y, x-offset)
+                  path.a_move(opoint.x, opoint.y)
+                  path.a_line(opoint.x, opoint.y)
+                  path.a_line(spoint.x, spoint.y)
+                  path.a_line(spoint.x, spoint.y)
+                  path.close
+                  path
                 end
-                a.calc_mode = "spline"
 
+                a.calc_mode = "spline"
                 a.key_splines << "0.5 0 0.5 1"
-                a.key_splines << "0.5 0 0.5 1"                
+                a.key_splines << "0.5 0 0.5 1"
                 a.key_splines << "0.5 0 0.5 1"
                 a.key_splines << "0.5 0 0.5 1"
                 a.repeat_count = "indefinite"
-
                 a
               end
+
               r
             end
           end
