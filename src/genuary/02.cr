@@ -48,6 +48,15 @@ module Genuary02
     end
     total_generations
   end
+
+  GENERATION_SIZE = 20_u32
+  RULE           = 30_u8
+  ON_COLOR       = "black"
+  OFF_COLOR      = "white"
+
+  WINDOW_WIDTH  = 500
+  WINDOW_HEIGHT = 500
+  Y_OFFSET = 20
 end
 
 get "/02" do |env|
@@ -63,8 +72,71 @@ get "/02/:seed" do |env|
     integer_seed = ((env.params.url["seed"].hash.to_i128 &- Int64::MAX) % Int32::MAX).to_i32
   end
 
+  cell_size = Genuary02::WINDOW_WIDTH/((Genuary02::GENERATION_SIZE * 2) + 1)
+  ca_data = Genuary02.evolve(Genuary02::GENERATION_SIZE, Genuary02::RULE)
+
   svg = Celestine.draw do |ctx|
-    # Celestine code goes here
+    ctx.height = 100
+    ctx.height_units = "%"
+    ctx.view_box = {x: 0, y: 0, w: Genuary02::WINDOW_WIDTH, h: Genuary02::WINDOW_HEIGHT}
+
+    Genuary02::GENERATION_SIZE.times do |y|
+      ((Genuary02::GENERATION_SIZE * 2) + 1).times do |x|
+        offset = Genuary02::GENERATION_SIZE + 1 - y
+
+        if x >= offset && x < offset + (y * 2) + 1
+          if ca_data[y][x - offset]
+            ctx.rectangle do |r|
+              r.x = x * cell_size
+              r.y = y * cell_size + Y_OFFSET
+              r.width = cell_size
+              r.height = cell_size
+              r.fill = Genuary02::ON_COLOR
+              r.animate_transform_rotate do |a|
+                ox = (x * cell_size) + cell_size/2
+                oy = (y * cell_size + Y_OFFSET) + cell_size/2
+
+                a.duration = 5
+                a.values << "0,#{ox},#{oy}"
+                a.values << "45,#{ox},#{oy}"
+                a.values << "45,#{ox},#{oy}"
+                a.values << "0,#{ox},#{oy}"
+                a.values << "0,#{ox},#{oy}"
+
+
+                a.calc_mode = "spline"
+
+                a.key_splines << "0.5 0 0.5 1"
+                a.key_splines << "0.5 0 0.5 1"
+                a.key_splines << "0.5 0 0.5 1"
+                a.key_splines << "0.5 0 0.5 1"
+                a.repeat_count = "indefinite"
+                a
+              end
+
+              r.animate_motion do |a|
+                a.duration = 5
+                a.mpath do |p|
+                  p.a_move(0, 0)
+                  p.r_line(0, 0)
+                  p
+                end
+                a.calc_mode = "spline"
+
+                a.key_splines << "0.5 0 0.5 1"
+                a.key_splines << "0.5 0 0.5 1"                
+                a.key_splines << "0.5 0 0.5 1"
+                a.key_splines << "0.5 0 0.5 1"
+                a.repeat_count = "indefinite"
+
+                a
+              end
+              r
+            end
+          end
+        end
+      end
+    end
   end
 
   render_layout("view")
