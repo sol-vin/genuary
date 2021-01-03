@@ -88,13 +88,14 @@ module Genuary02
   WINDOW_HEIGHT        =    500
   X_OFFSET             =    -10
   Y_OFFSET             =     20
-  GENERATION_SIZE      = 40_u32
+  GENERATION_SIZE      = 20_u32
   MAX_GENERATION_CELLS = ((GENERATION_SIZE * 2) + 1)
   CELL_SIZE            = WINDOW_WIDTH/MAX_GENERATION_CELLS
   RULE                 = 30_u8
   ON_COLOR             = "black"
   OFF_COLOR            = "white"
   DURATION             = 5
+  CELL_BLEED = 0.4
 end
 
 get "/02" do |env|
@@ -128,13 +129,13 @@ get "/02/:seed" do |env|
               # Conflicts with animateMotion?
               # r.x = opoint.x
               # r.y = opoint.y
-              r.width = Genuary02::CELL_SIZE
-              r.height = Genuary02::CELL_SIZE
+              r.width = Genuary02::CELL_SIZE + Genuary02::CELL_BLEED
+              r.height = Genuary02::CELL_SIZE + Genuary02::CELL_BLEED
               r.fill = Genuary02::ON_COLOR
 
               r.animate_transform_rotate do |a|
-                ox = Genuary02::CELL_SIZE/2
-                oy =  Genuary02::CELL_SIZE/2
+                ox = (Genuary02::CELL_SIZE/2).round(2)
+                oy = (Genuary02::CELL_SIZE/2).round(2)
 
                 a.duration = Genuary02::DURATION
                 a.values << "45,#{ox},#{oy}"
@@ -144,6 +145,15 @@ get "/02/:seed" do |env|
                 a.values << "-135,#{ox},#{oy}"
 
                 a.calc_mode = "spline"
+
+                timing = (0.45 * (y/Genuary02::GENERATION_SIZE)).round(2)
+
+                a.key_times << 0.0
+                a.key_times << 0.1
+                a.key_times << 0.1 + timing
+                a.key_times << 0.1 + timing + 0.2
+
+                a.key_times << 1.0
 
                 a.key_splines << "0.5 0 0.5 1"
                 a.key_splines << "0.5 0 0.5 1"
@@ -157,13 +167,23 @@ get "/02/:seed" do |env|
                 a.duration = Genuary02::DURATION
                 a.mpath do |path|
                   spoint = Genuary02.get_original_position(y, x-offset)
-                  path.a_move(opoint.x, opoint.y)
-                  path.a_line(opoint.x, opoint.y)
-                  path.a_line(spoint.x, spoint.y)
-                  path.a_line(spoint.x, spoint.y)
+                  path.a_move(opoint.x.round(2), opoint.y.round(2))
+                  path.a_line(opoint.x.round(2), opoint.y.round(2))
+                  path.a_line(spoint.x.round(2), spoint.y.round(2))
+                  path.a_line(spoint.x.round(2), spoint.y.round(2))
                   path.close
                   path
                 end
+
+                timing = (0.45 * (y/Genuary02::GENERATION_SIZE)).round(2)
+
+                a.key_times << 0.0
+                a.key_times << 0.1
+                a.key_times << 0.1 + timing
+                a.key_times << 0.1 + timing + 0.2
+
+                a.key_times << 1.0
+
 
                 a.calc_mode = "spline"
                 a.key_splines << "0.5 0 0.5 1"
