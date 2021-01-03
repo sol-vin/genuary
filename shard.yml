@@ -15,6 +15,7 @@ dependencies:
     github: kemalcr/kemal
   perlin_noise:
     github: redcodefinal/perlin_noise
+    
 crystal: 0.35.1
 
 license: MIT
